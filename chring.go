@@ -14,6 +14,7 @@ type Ring struct {
 	Hasher func(id string) uint32
 }
 
+// New creates a new consistent hash ring with a default hashing algo
 func New() *Ring {
 	return &Ring{Nodes: []*node{}, Hasher: DefaultHasher}
 }
@@ -22,6 +23,12 @@ func New() *Ring {
 func (r *Ring) Add(id string) {
 	r.Lock()
 	defer r.Unlock()
+
+	// don't insert the same node more than once
+	if r.findNode(id) == 0 && len(r.Nodes) > 0 && r.Nodes[0].ID == id {
+		// TODO: why is search returning 0 on miss? should be -1, yeah?
+		return
+	}
 
 	n := newNode(id, r.Hasher)
 	r.Nodes = append(r.Nodes, n)
@@ -32,6 +39,10 @@ func (r *Ring) Add(id string) {
 func (r *Ring) Get(key string) string {
 	r.Lock()
 	r.Unlock()
+
+	if len(r.Nodes) == 0 {
+		return "" // should error?
+	}
 
 	i := r.search(key)
 	if i >= r.Nodes.Len() || i == -1 {
@@ -57,14 +68,14 @@ func (r *Ring) Remove(id string) error {
 
 // findNode is different than `search` in that it searches for an exact match for a node ID
 func (r *Ring) findNode(id string) int {
-	return sort.Search(len(r.Nodes)-1, func(i int) bool {
+	return sort.Search(len(r.Nodes), func(i int) bool {
 		return r.Nodes[i].HashID == r.Hasher(id)
 	})
 }
 
 // search is different than `findNode` in that it searches for any node next in the hash ring for a given key
 func (r *Ring) search(key string) int {
-	return sort.Search(len(r.Nodes)-1, func(i int) bool {
+	return sort.Search(len(r.Nodes), func(i int) bool {
 		return r.Nodes[i].HashID < r.Hasher(key)
 	})
 }

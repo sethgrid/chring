@@ -12,10 +12,13 @@ Now, you can get a consistent node destination when you `ring.Get(key)`, where `
 
 If a node goes down, you can `ring.Remove(NodeName)`.
 
+### Data Visualization
+
+You can visualize your hash ring and its node locations with `chring.Serve(ring, ":5000")`. Check it out live with `cd example; go run main.go` and load http://localhost:5000. Neat!
+
 ### Pending Development
 
 - allow for virtal nodes
-- allow for a visual representation of your ring
 - provide a clear path for rebalancing when you add or remove a node by providing a list of nodes that require migrations of data
 
 ### Inspiration

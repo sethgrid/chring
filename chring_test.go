@@ -16,6 +16,17 @@ func newSeededRing() *chring.Ring {
 	return ring
 }
 
+func TestAddIsConsistent(t *testing.T) {
+	ring := chring.New()
+	ring.Add("a")
+	ring.Add("a")
+	ring.Add("a")
+
+	if ring.Nodes.Len() != 1 {
+		t.Errorf("want 1 node, got %d", ring.Nodes.Len())
+	}
+}
+
 func TestGetReturnsAKey(t *testing.T) {
 	ring := newSeededRing()
 
