@@ -1,7 +1,6 @@
 package chring_test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/sethgrid/chring"
@@ -76,17 +75,6 @@ func TestConsistentHashRing(t *testing.T) {
 	if errCount != 0 {
 		t.Errorf("got %d inconsistent hash results, want 0 if we are consistent", errCount)
 	}
-}
-
-func TestDrawChart(t *testing.T) {
-	ring := chring.New()
-	for _, n := range []string{"123.45.83.190", "123.45.83.191", "123.45.83.192", "123.45.78.191", "123.45.83.190", "123.45.83.190", "123.45.83.190", "123.45.83.190"} {
-		ring.Add(n)
-	}
-	exampleURL := "http://localhost:8080/?key[]=%22user180%22&key[]=%22foo%22&hashid[]=5000000000000"
-	log.Println(exampleURL)
-	log.Println("blocking so we can manually test the url ^^")
-	chring.Serve(ring)
 }
 
 func In(s string, slice []string) bool {
