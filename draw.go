@@ -40,26 +40,29 @@ func (r *Ring) drawChart(w http.ResponseWriter, req *http.Request) {
 	legend.Elements = make([]simpledraw.LegendElement, 0)
 	gc.DrawCircle(ring)
 	for i, n := range r.Nodes {
+		circle := 0
 		props := simpledraw.DefaultBasicProperties
 		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)]
-		gc.DrawOnEdge(ring, hashAngle(n.HashID), 0, 10, props)
-		legend.AppendElement(0, n.ID, props)
+		gc.DrawOnEdge(ring, hashAngle(n.HashID), circle, 10, props)
+		legend.AppendElement(circle, n.ID, props)
 	}
 
 	for i, param := range m["key[]"] {
+		square := 4
 		props := simpledraw.DefaultBasicProperties
 		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+3]
-		gc.DrawOnEdge(ring, hashAngle(r.Hasher(param)), 4, 8, props)
-		legend.AppendElement(4, param, props)
+		gc.DrawOnEdge(ring, hashAngle(r.Hasher(param)), square, 8, props)
+		legend.AppendElement(square, param, props)
 	}
 
 	for i, param := range m["hashid[]"] {
+		triangle := 3
 		hashID, _ := strconv.Atoi(param)
 		props := simpledraw.DefaultBasicProperties
 		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+5]
-		gc.DrawOnEdge(ring, hashAngle(uint32(hashID)), 3, 8, props)
+		gc.DrawOnEdge(ring, hashAngle(uint32(hashID)), triangle, 8, props)
 		hashStr := fmt.Sprintf("hash #%d", hashID)
-		legend.AppendElement(3, hashStr, props)
+		legend.AppendElement(triangle, hashStr, props)
 	}
 
 	gc.DrawLegend(legend)
