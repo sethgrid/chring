@@ -203,6 +203,20 @@ type LegendElement struct {
 	Props         BasicProperties
 }
 
+// PrependElement is a helper to cut down on visual clutter when developing. Not async.
+func (l *Legend) PrependElement(polygonSides int, name string, props BasicProperties) {
+	dest := image.NewRGBA(image.Rect(0, 0, 0, 0)) // some dest is needed
+	gc := draw2dimg.NewGraphicContext(dest)
+	left, top, right, bottom := gc.GetStringBounds(name)
+	l.Elements = append([]LegendElement{{
+		PolygonSides: polygonSides,
+		Name:         name,
+		Props:        props,
+		Width:        right - left,
+		Height:       bottom - top,
+	}}, l.Elements...)
+}
+
 // AppendElement is a helper to cut down on visual clutter when developing. Not async.
 func (l *Legend) AppendElement(polygonSides int, name string, props BasicProperties) {
 	dest := image.NewRGBA(image.Rect(0, 0, 0, 0)) // some dest is needed
