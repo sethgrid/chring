@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"
 )
 
@@ -64,12 +65,31 @@ func (d *Draw) DrawTriangle(t Triangle) {
 	d.FillStroke()
 }
 
+func (d *Draw) WriteStringAt(text string, x, y float64) (width float64) {
+	d.SetFillColor(Black)
+	return d.FillStringAt(text, x, y)
+}
+
+func (d *Draw) WriteBoldStringAt(text string, x, y float64) (width float64) {
+	f := d.GetFontData()
+	f.Style = draw2d.FontStyleBold
+	d.SetFontData(f)
+
+	defer func() {
+		f.Style = draw2d.FontStyleNormal
+		d.SetFontData(f)
+	}()
+	return d.WriteStringAt(text, x, y)
+}
+
 func (d *Draw) DrawLegend(l *Legend) {
 	var x, y float64 = 25, 25
-	d.StrokeStringAt(l.Title, x, y)
+
+	d.WriteBoldStringAt(l.Title, x, y)
 	_, top, _, bottom := d.GetStringBounds(l.Title)
 	y += (bottom - top) + 5
-	d.StrokeStringAt(l.Caption, x, y)
+
+	d.WriteStringAt(l.Caption, x, y)
 	_, top, _, bottom = d.GetStringBounds(l.Caption)
 	y += (bottom - top) + 15
 
@@ -89,7 +109,8 @@ func (d *Draw) DrawLegend(l *Legend) {
 			shape.Props = e.Props
 			d.DrawTriangle(shape)
 		}
-		d.StrokeStringAt(e.Name, x+10, y)
+
+		d.WriteStringAt(e.Name, x+10, y)
 		_, top, _, bottom = d.GetStringBounds(l.Caption)
 		y += (bottom - top) + 5
 	}
@@ -180,7 +201,7 @@ func (l *Legend) ContentWidth() float64 {
 			greatest = e.Width
 		}
 	}
-	return greatest
+	return greatest + 5
 }
 
 func (l *Legend) ContentHeight() float64 {
