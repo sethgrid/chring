@@ -31,7 +31,6 @@ func (r *Ring) drawChart(w http.ResponseWriter, req *http.Request) {
 	draw2d.SetFontFolder(fontFolder)
 	gc := simpledraw.Draw{draw2dimg.NewGraphicContext(dest)}
 
-	var x, y float64
 	ring := simpledraw.NewCircle(340, 175, 150)
 
 	// TODO parse the legend first to determine the needed canvas size, then draw all the things
@@ -39,54 +38,28 @@ func (r *Ring) drawChart(w http.ResponseWriter, req *http.Request) {
 	legend.Title = "Consistent Hash Ring"
 	legend.Caption = "Distribution Visualization"
 	legend.Elements = make([]simpledraw.LegendElement, 0)
-
 	gc.DrawCircle(ring)
 	for i, n := range r.Nodes {
-		x, y = ring.PointAtAngle(hashAngle(n.HashID))
-		c := simpledraw.NewCircle(x, y, 10)
-		c.Props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)]
-		gc.DrawCircle(c)
-		left, top, right, bottom := gc.GetStringBounds(n.ID)
-		legend.Elements = append(legend.Elements, simpledraw.LegendElement{
-			IsCircle: true,
-			Name:     n.ID,
-			Props:    c.Props,
-			Width:    right - left,
-			Height:   bottom - top,
-		})
+		props := simpledraw.DefaultBasicProperties
+		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)]
+		gc.DrawOnEdge(ring, hashAngle(n.HashID), 0, 10, props)
+		legend.AppendElement(0, n.ID, props)
 	}
 
 	for i, param := range m["key[]"] {
-		hashID := r.Hasher(param)
-		x, y = ring.PointAtAngle(hashAngle(hashID))
-		s := simpledraw.NewSquare(x, y, 8)
-		s.Props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+3]
-		gc.DrawSquare(s)
-		left, top, right, bottom := gc.GetStringBounds(param)
-		legend.Elements = append(legend.Elements, simpledraw.LegendElement{
-			IsSquare: true,
-			Name:     param,
-			Props:    s.Props,
-			Width:    right - left,
-			Height:   bottom - top,
-		})
+		props := simpledraw.DefaultBasicProperties
+		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+3]
+		gc.DrawOnEdge(ring, hashAngle(r.Hasher(param)), 4, 8, props)
+		legend.AppendElement(4, param, props)
 	}
 
 	for i, param := range m["hashid[]"] {
 		hashID, _ := strconv.Atoi(param)
-		x, y = ring.PointAtAngle(hashAngle(uint32(hashID)))
-		t := simpledraw.NewTriangle(x, y, 8)
-		t.Props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+5]
-		gc.DrawTriangle(t)
+		props := simpledraw.DefaultBasicProperties
+		props.Color = simpledraw.Pallate[i%len(simpledraw.Pallate)+5]
+		gc.DrawOnEdge(ring, hashAngle(uint32(hashID)), 3, 8, props)
 		hashStr := fmt.Sprintf("hash #%d", hashID)
-		left, top, right, bottom := gc.GetStringBounds(hashStr)
-		legend.Elements = append(legend.Elements, simpledraw.LegendElement{
-			IsTriangle: true,
-			Name:       hashStr,
-			Props:      t.Props,
-			Width:      right - left,
-			Height:     bottom - top,
-		})
+		legend.AppendElement(3, hashStr, props)
 	}
 
 	gc.DrawLegend(legend)
@@ -119,6 +92,7 @@ func Serve(r *Ring, addr string) {
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
+// hashAngle is a helper to find the angle in radians of the hashID in uint32 space
 func hashAngle(hashID uint32) float64 {
 	return 2 * math.Pi * float64(hashID) / float64(math.MaxUint32)
 }
