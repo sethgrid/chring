@@ -18,7 +18,10 @@ You can visualize your hash ring and its node locations with `chring.Serve(ring,
 
 ### Pending Development
 
+- on visualization and in code for node manager, be able to get weights of nodes (know x% of keys in node N)
+- make a node manager
 - allow for virtal nodes
+- allow placing of nodes at a given hash id so you can manually balance nodes
 - provide a clear path for rebalancing when you add or remove a node by providing a list of nodes that require migrations of data
 
 ### Inspiration
