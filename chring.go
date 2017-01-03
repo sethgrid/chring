@@ -15,7 +15,7 @@ type Ring struct {
 }
 
 // New creates a new consistent hash ring with a default hashing algo
-func New() *Ring {
+func NewRing() *Ring {
 	return &Ring{Nodes: []*node{}, Hasher: DefaultHasher}
 }
 
@@ -68,16 +68,31 @@ func (r *Ring) Remove(id string) error {
 
 // findNode is different than `search` in that it searches for an exact match for a node ID
 func (r *Ring) findNode(id string) int {
-	return sort.Search(len(r.Nodes), func(i int) bool {
-		return r.Nodes[i].HashID == r.Hasher(id)
+	nextNode := sort.Search(len(r.Nodes), func(i int) bool {
+		return r.Nodes[i].HashID > r.Hasher(id)
 	})
+	if nextNode == 0 {
+		return nextNode
+	}
+	return nextNode - 1
 }
 
 // search is different than `findNode` in that it searches for any node next in the hash ring for a given key
 func (r *Ring) search(key string) int {
 	return sort.Search(len(r.Nodes), func(i int) bool {
-		return r.Nodes[i].HashID < r.Hasher(key)
+		return r.Nodes[i].HashID > r.Hasher(key)
 	})
+}
+
+// searchByHashID finds the node closest to the given hashID
+func (r *Ring) searchByHashID(hashID uint32) int {
+	nodeAfter := sort.Search(len(r.Nodes), func(i int) bool {
+		return r.Nodes[i].HashID > hashID
+	})
+	if nodeAfter <= 0 {
+		return nodeAfter
+	}
+	return nodeAfter - 1
 }
 
 // node comprises nodes, which are placed in the consistent hash ring

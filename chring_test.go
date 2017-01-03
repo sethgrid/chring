@@ -9,7 +9,7 @@ import (
 var NodeList = []string{"node 1", "node 2", "node 3", "node 4"}
 
 func newSeededRing() *chring.Ring {
-	ring := chring.New()
+	ring := chring.NewRing()
 	for _, n := range NodeList {
 		ring.Add(n)
 	}
@@ -17,7 +17,7 @@ func newSeededRing() *chring.Ring {
 }
 
 func TestAddIsConsistent(t *testing.T) {
-	ring := chring.New()
+	ring := chring.NewRing()
 	ring.Add("a")
 	ring.Add("a")
 	ring.Add("a")
