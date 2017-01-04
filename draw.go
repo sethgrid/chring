@@ -1,6 +1,7 @@
 package chring
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/png"
@@ -42,6 +43,19 @@ func (r *Ring) drawChart(w http.ResponseWriter, req *http.Request) {
 
 	// draw the elements in order you want them z-stacked visually, later elements will be on top
 
+	// ring manager invokes the drawChart method and passes in keys via context
+	ctx := req.Context()
+	keys, ok := ctx.Value("keys").([]string)
+	if ok {
+		for i, param := range keys {
+			square := 4
+			props := simpledraw.DefaultBasicProperties
+			props.Color = simpledraw.Pallate[(i+3)%len(simpledraw.Pallate)]
+			gc.DrawOnEdge(ring, hashAngle(r.Hasher(param)), square, 4, props)
+			legend.AppendElement(square, param, props)
+		}
+	}
+
 	for i, param := range m["key[]"] {
 		square := 4
 		props := simpledraw.DefaultBasicProperties
@@ -78,24 +92,61 @@ func (r *Ring) drawChart(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	path := FindInGOPATH(filepath.Join("resources", "index.html"))
+func htmlHandler(htmlFile string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := FindInGOPATH(filepath.Join("resources", htmlFile))
 
-	index, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("unable to serve index.html"))
-		return
+		html, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("unable to serve " + htmlFile))
+			return
+		}
+		w.Write(html)
 	}
-	w.Write(index)
 }
 
-// Serve presents a web view into your consistent hash ring
-func Serve(r *Ring, addr string) {
+// ServeRing presents a web view into your consistent hash ring
+func ServeRing(r *Ring, addr string) {
 	http.HandleFunc("/ring.png", r.drawChart)
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", htmlHandler("ring.html"))
 	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+// ServeRingManager presents a web view into your consistent hash ring manager
+func ServeRingManager(rm *RingManager, addr string) {
+	http.HandleFunc("/ring.png", addKeysToCtx(rm, rm.nodeRing.drawChart))
+	http.HandleFunc("/", htmlHandler("ringmanager.html"))
+	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+// addKeysToCtx
+func addKeysToCtx(rm *RingManager, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		nodeList := rm.GetNodes()
+		ctx := r.Context()
+		var keys []string
+		for _, n := range rm.dataRing.Nodes {
+			if inList(n.ID, nodeList) {
+				continue
+			}
+			keys = append(keys, n.ID)
+		}
+		ctx = context.WithValue(ctx, "keys", keys)
+		req := r.WithContext(ctx)
+		next.ServeHTTP(w, req)
+	}
+}
+
+// inList is a simple helper to determine if a string slice contains a given string
+func inList(s string, list []string) bool {
+	for _, e := range list {
+		if s == e {
+			return true
+		}
+	}
+	return false
 }
 
 // hashAngle is a helper to find the angle in radians of the hashID in uint32 space

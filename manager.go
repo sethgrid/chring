@@ -11,34 +11,53 @@ RingManager still a WIP
 
 type RingManager struct {
 	sync.Mutex
-	nodeNames  []string
+	// nodeNames  []string
 	nodeRing   *Ring
 	dataRing   *Ring
 	keyFetcher func(nodeRing, dataRing *Ring, id string) (nodes, error)
 	keyStorer  func(key string) error
+	keyRemover func(key string) error
 }
 
 func NewRingManager() *RingManager {
-	r := NewRing()
+	dr := NewRing()
 	return &RingManager{
-		nodeNames:  make([]string, 0),
 		nodeRing:   NewRing(),
-		dataRing:   r,
+		dataRing:   dr,
 		keyFetcher: defaultKeyFetcher,
-		keyStorer:  r.defaultKeyStorer,
+		keyStorer:  dr.defaultKeyStorer,
+		keyRemover: dr.defaultKeyRemover,
 	}
+}
+
+func (rm *RingManager) GetNodes() []string {
+	names := make([]string, len(rm.nodeRing.Nodes))
+	for i, n := range rm.nodeRing.Nodes {
+		names[i] = n.ID
+	}
+	return names
 }
 
 func (rm *RingManager) AddNode(nodeID string) error {
 	rm.Lock()
 	defer rm.Unlock()
-	rm.nodeNames = append(rm.nodeNames, nodeID)
 	rm.nodeRing.Add(nodeID)
 	return rm.keyStorer(nodeID)
 }
 
+func (rm *RingManager) RemoveNode(nodeID string) error {
+	rm.Lock()
+	defer rm.Unlock()
+	rm.nodeRing.Remove(nodeID)
+	return rm.keyRemover(nodeID)
+}
+
 func (rm *RingManager) AddKey(key string) error {
 	return rm.keyStorer(key)
+}
+
+func (rm *RingManager) RemoveKey(key string) error {
+	return rm.keyRemover(key)
 }
 
 func (rm *RingManager) GetKeys(nodeID string) (nodes, error) {
@@ -69,6 +88,9 @@ func defaultKeyFetcher(nodeRing, dataRing *Ring, id string) (nodes, error) {
 	// defer r.Unlock()
 
 	startIndex := nodeRing.findNode(id)
+	if nodeRing.Nodes[startIndex].ID != id {
+		return nil, ErrNotFound
+	}
 	endIndex := startIndex + 1
 	wraps := false
 	if endIndex >= len(nodeRing.Nodes) {
@@ -103,6 +125,9 @@ func defaultKeyFetcher(nodeRing, dataRing *Ring, id string) (nodes, error) {
 	if size < 0 {
 		size = end - start - 2
 	}
+	if size < 0 {
+		size = 0
+	}
 	dataNodes := make(nodes, size)
 
 	if !wraps {
@@ -128,5 +153,10 @@ func defaultKeyFetcher(nodeRing, dataRing *Ring, id string) (nodes, error) {
 
 func (r *Ring) defaultKeyStorer(key string) error {
 	r.Add(key)
+	return nil
+}
+
+func (r *Ring) defaultKeyRemover(key string) error {
+	r.Remove(key)
 	return nil
 }
